@@ -14,6 +14,7 @@ from groq import Groq
 from models import db, User, ChatHistory
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "airsense-dev-secret-change-in-prod")
 
 # Load local .env if present (Vercel uses env vars natively)
 try:
