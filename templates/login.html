@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
 </head>
 <body class="login-body">
 
@@ -105,7 +106,7 @@
   const formTitle  = document.getElementById('form-title');
   const formDesc   = document.getElementById('form-desc');
 
-  let isSignup = !CryptoModule.accountExists();
+  let isSignup = false;
 
   function updateMode() {
     if (isSignup) {
@@ -190,45 +191,20 @@
           setLoading(false);
           return;
         }
-        if (CryptoModule.accountExists()) {
-          showError('An account already exists. Sign in or clear data.');
-          setLoading(false);
-          return;
-        }
 
         const cryptoKey = await CryptoModule.createAccount(username, password);
-        // Store session key reference in sessionStorage (just a flag, actual key is page-scoped)
         sessionStorage.setItem('airsense_session', 'active');
-        // Pass the crypto key to the main app via a page-level variable
-        window.__airsense_key = cryptoKey;
+        sessionStorage.setItem('airsense_session_key', btoa(password));
         window.location.href = '/app';
       } else {
         // Login
-        const storedUsername = CryptoModule.getUsername();
-        if (storedUsername && username !== storedUsername) {
-          showError('Username does not match.');
-          setLoading(false);
-          return;
-        }
-        const cryptoKey = await CryptoModule.login(password);
-        if (!cryptoKey) {
-          showError('Incorrect password. Please try again.');
-          setLoading(false);
-          return;
-        }
+        const cryptoKey = await CryptoModule.login(username, password);
         sessionStorage.setItem('airsense_session', 'active');
-        // Temporarily store encrypted session marker
-        const salt = CryptoModule.fromBase64(JSON.parse(localStorage.getItem('airsense_account')).salt);
-        // Store password hash in sessionStorage so main page can re-derive the key
-        const tempHash = await CryptoModule.hashPassword(password, salt);
-        sessionStorage.setItem('airsense_pwd_hash', tempHash);
-        // Store password temporarily in sessionStorage (encrypted itself is not possible here
-        // since we need the password to derive the key — we use sessionStorage which is tab-scoped)
         sessionStorage.setItem('airsense_session_key', btoa(password));
         window.location.href = '/app';
       }
     } catch (err) {
-      showError('An error occurred. Please try again.');
+      showError(err.message || 'An error occurred. Please try again.');
       console.error(err);
       setLoading(false);
     }

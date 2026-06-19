@@ -13,7 +13,9 @@ let decryptedKeys = { groq: "", weather: "" };
   const sessionActive = sessionStorage.getItem("airsense_session");
   const encodedPwd    = sessionStorage.getItem("airsense_session_key");
 
-  if (!sessionActive || !encodedPwd || !CryptoModule.accountExists()) {
+  const username      = CryptoModule.getUsername();
+
+  if (!sessionActive || !encodedPwd || !username) {
     // No valid session — redirect to login
     window.location.href = "/login";
     return;
@@ -22,8 +24,8 @@ let decryptedKeys = { groq: "", weather: "" };
   try {
     // Re-derive the encryption key from the stored password
     const password = atob(encodedPwd);
-    const account  = JSON.parse(localStorage.getItem("airsense_account"));
-    const salt     = CryptoModule.fromBase64(account.salt);
+    const saltB64  = localStorage.getItem("airsense_salt");
+    const salt     = CryptoModule.fromBase64(saltB64);
     sessionKey     = await CryptoModule.deriveKey(password, salt);
 
     // Load saved API keys
@@ -33,10 +35,17 @@ let decryptedKeys = { groq: "", weather: "" };
       decryptedKeys.weather = savedKeys.weather || "";
     }
 
-    // Load and restore encrypted chat history
-    const savedChat = await CryptoModule.loadAndDecrypt("airsense_chathistory", sessionKey);
-    if (savedChat && Array.isArray(savedChat)) {
-      restoreChatHistory(savedChat);
+    // Load chat history from backend
+    try {
+      const res = await fetch(`/api/history?username=${encodeURIComponent(username)}`);
+      if (res.ok) {
+        const savedChat = await res.json();
+        if (savedChat && Array.isArray(savedChat)) {
+          restoreChatHistory(savedChat);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch history", e);
     }
 
     // Populate settings UI
@@ -62,12 +71,7 @@ function trackMessage(role, text) {
 }
 
 async function saveChatHistory() {
-  if (!sessionKey) return;
-  try {
-    await CryptoModule.encryptAndStore("airsense_chathistory", chatHistory, sessionKey);
-  } catch (e) {
-    console.warn("Failed to save chat history:", e);
-  }
+  // Handled by the backend via /api/chat now!
 }
 
 function restoreChatHistory(history) {
@@ -201,6 +205,7 @@ function bootApp() {
           history: chatHistory.slice(-10),
           groq_key: decryptedKeys.groq,
           weather_key: decryptedKeys.weather,
+          username: CryptoModule.getUsername()
         }),
       });
       const data = await res.json();

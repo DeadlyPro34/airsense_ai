@@ -99,47 +99,60 @@ const CryptoModule = (() => {
     const hash = await hashPassword(password, salt);
     const cryptoKey = await deriveKey(password, salt);
 
-    const accountData = {
-      username,
-      salt: toBase64(salt),
-      hash,
-    };
-    localStorage.setItem("airsense_account", JSON.stringify(accountData));
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username,
+        salt: toBase64(salt),
+        password_hash: hash
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Registration failed");
+
+    localStorage.setItem("airsense_user", username);
+    localStorage.setItem("airsense_salt", toBase64(salt));
     return cryptoKey;
   }
 
-  async function login(password) {
-    const raw = localStorage.getItem("airsense_account");
-    if (!raw) return null;
+  async function login(username, password) {
+    // 1. Get the user's salt from the backend
+    const saltRes = await fetch(`/api/auth/salt?username=${encodeURIComponent(username)}`);
+    const saltData = await saltRes.json();
+    if (!saltRes.ok) throw new Error(saltData.error || "User not found");
 
-    const account = JSON.parse(raw);
-    const salt = fromBase64(account.salt);
+    const salt = fromBase64(saltData.salt);
+    
+    // 2. Compute the hash locally
     const hash = await hashPassword(password, salt);
 
-    if (hash !== account.hash) return null;
+    // 3. Send the hash to the backend for verification
+    const loginRes = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, hash })
+    });
+    const loginData = await loginRes.json();
+    if (!loginRes.ok) throw new Error(loginData.error || "Login failed");
 
+    localStorage.setItem("airsense_user", username);
+    localStorage.setItem("airsense_salt", saltData.salt);
     return deriveKey(password, salt);
   }
 
-  function accountExists() {
-    return localStorage.getItem("airsense_account") !== null;
-  }
-
   function getUsername() {
-    const raw = localStorage.getItem("airsense_account");
-    if (!raw) return null;
-    return JSON.parse(raw).username;
+    return localStorage.getItem("airsense_user");
   }
 
   function logout() {
-    // Only clear the session key reference — account data stays
-    // (the caller is responsible for clearing the in-memory key)
+    // Session token removed by caller
   }
 
   function deleteAccount() {
-    localStorage.removeItem("airsense_account");
+    localStorage.removeItem("airsense_user");
     localStorage.removeItem("airsense_apikeys");
-    localStorage.removeItem("airsense_chathistory");
+    // History is on backend now, keys remain local to device
   }
 
   /* ─── public API ─────────────────────────────────────────────── */
