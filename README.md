@@ -1,4 +1,4 @@
-# AirSense AI — Real-Time Air Quality Health Advisory
+# AirSense AI — Real-Time Air Quality Health Advisory HI
 
 A working prototype: Flask backend + live AQI data (OpenWeatherMap) + AI health
 advisory grounded in WHO guidelines (Groq / Llama 3.3).
