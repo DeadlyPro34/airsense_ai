@@ -32,6 +32,12 @@ def handle_exception(e):
     return jsonify(error="Internal Server Error: " + str(e)), 500
 
 db_url = os.environ.get('DATABASE_URL', '').strip()
+
+# pg8000 does not support the ?sslmode=require query parameter in the URL.
+# We must strip it out if it exists, otherwise SQLAlchemy throws a TypeError.
+if '?' in db_url:
+    db_url = db_url.split('?')[0]
+
 if not db_url:
     # Prevent the entire Vercel function from crashing on boot if the env var is missing
     db_url = 'sqlite:///:memory:'
@@ -39,8 +45,16 @@ elif db_url.startswith('postgres://'):
     db_url = db_url.replace('postgres://', 'postgresql+pg8000://', 1)
 elif db_url.startswith('postgresql://'):
     db_url = db_url.replace('postgresql://', 'postgresql+pg8000://', 1)
+    
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Supabase requires SSL. pg8000 requires ssl_context=True in connect_args.
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'connect_args': {
+        'ssl_context': True
+    }
+}
 
 db.init_app(app)
 
@@ -372,41 +386,50 @@ def api_chat():
 
 @app.route("/api/auth/register", methods=["POST"])
 def api_register():
-    data = request.json
-    username = (data or {}).get("username", "").strip()
-    password_hash = (data or {}).get("password_hash", "").strip()
-    salt = (data or {}).get("salt", "").strip()
-    
-    if not username or not password_hash or not salt:
-        return jsonify({"error": "Missing registration data"}), 400
+    try:
+        data = request.json
+        username = (data or {}).get("username", "").strip()
+        password_hash = (data or {}).get("password_hash", "").strip()
+        salt = (data or {}).get("salt", "").strip()
         
-    if app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///:memory:':
-        return jsonify({"error": "DATABASE_URL environment variable is missing on Vercel. Please add it in your Vercel Project Settings."}), 500
+        if not username or not password_hash or not salt:
+            return jsonify({"error": "Missing registration data"}), 400
+            
+        if app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///:memory:':
+            return jsonify({"error": "DATABASE_URL environment variable is missing on Vercel."}), 500
+            
+        existing = User.query.filter_by(username=username).first()
+        if existing:
+            return jsonify({"error": "An account already exists. Sign in or clear data."}), 400
+            
+        user = User.query.filter_by(username=username).first()
+        user = User(username=username, password_hash=password_hash, salt=salt)
+        db.session.add(user)
+        db.session.commit()
         
-    existing = User.query.filter_by(username=username).first()
-    if existing:
-        return jsonify({"error": "An account already exists. Sign in or clear data."}), 400
-        
-    user = User(username=username, password_hash=password_hash, salt=salt)
-    db.session.add(user)
-    db.session.commit()
-    
-    return jsonify({"message": "Account created successfully"})
+        return jsonify({"message": "Account created successfully"})
+    except Exception as e:
+        import traceback
+        return jsonify({"error": "Register crash: " + str(e), "trace": traceback.format_exc()}), 500
 
 @app.route("/api/auth/salt", methods=["GET"])
 def api_get_salt():
-    username = request.args.get("username", "").strip()
-    if not username:
-        return jsonify({"error": "Username required"}), 400
-        
-    if app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///:memory:':
-        return jsonify({"error": "DATABASE_URL environment variable is missing on Vercel. Please add it in your Vercel Project Settings."}), 500
-        
-    user = User.query.filter_by(username=username).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-        
-    return jsonify({"salt": user.salt})
+    try:
+        username = request.args.get("username", "").strip()
+        if not username:
+            return jsonify({"error": "Username required"}), 400
+            
+        if app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///:memory:':
+            return jsonify({"error": "DATABASE_URL environment variable is missing on Vercel."}), 500
+            
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        return jsonify({"salt": user.salt})
+    except Exception as e:
+        import traceback
+        return jsonify({"error": "Salt crash: " + str(e), "trace": traceback.format_exc()}), 500
 
 @app.route("/api/init_db", methods=["GET"])
 def init_db():
@@ -418,24 +441,31 @@ def init_db():
 
 @app.route("/api/auth/login", methods=["POST"])
 def api_login():
-    data = request.json
-    username = (data or {}).get("username", "").strip()
-    password_hash = (data or {}).get("hash", "").strip()
-    
-    if not username or not password_hash:
-        return jsonify({"error": "Username and hash required"}), 400
+    try:
+        data = request.json
+        username = (data or {}).get("username", "").strip()
+        hash_val = (data or {}).get("hash", "").strip()
         
-    user = User.query.filter_by(username=username).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-        
-    if user.password_hash != password_hash:
-        return jsonify({"error": "Incorrect password"}), 401
-        
-    return jsonify({
-        "username": user.username,
-        "message": "Login successful"
-    })
+        if not username or not hash_val:
+            return jsonify({"error": "Missing login credentials"}), 400
+            
+        if app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///:memory:':
+            return jsonify({"error": "DATABASE_URL environment variable is missing on Vercel."}), 500
+            
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({"error": "Invalid username or password"}), 401
+            
+        if user.password_hash != hash_val:
+            return jsonify({"error": "Invalid username or password"}), 401
+            
+        return jsonify({
+            "message": "Login successful",
+            "username": user.username
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({"error": "Login crash: " + str(e), "trace": traceback.format_exc()}), 500
 
 @app.route("/api/history", methods=["GET"])
 def api_get_history():
