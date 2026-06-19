@@ -166,7 +166,6 @@ const CryptoModule = (() => {
     loadAndDecrypt,
     createAccount,
     login,
-    accountExists,
     getUsername,
     logout,
     deleteAccount,
