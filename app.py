@@ -44,11 +44,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
-with app.app_context():
-    try:
-        db.create_all()
-    except Exception as e:
-        print(f"DB init warning: {e}")
+# We do NOT run db.create_all() here at module level.
+# Vercel Lambda functions have strict 10s init timeouts, and connecting to
+# external databases during import often hangs and causes 500 Boot Errors.
+# Tables should be created via migrations or a dedicated setup script.
 
 # ── WHO / health knowledge base (simple RAG — retrieved by AQI bucket) ──────
 WHO_GUIDELINES = {
@@ -408,6 +407,14 @@ def api_get_salt():
         return jsonify({"error": "User not found"}), 404
         
     return jsonify({"salt": user.salt})
+
+@app.route("/api/init_db", methods=["GET"])
+def init_db():
+    try:
+        db.create_all()
+        return jsonify({"message": "Database tables created successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/auth/login", methods=["POST"])
 def api_login():
