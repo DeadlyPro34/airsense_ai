@@ -31,8 +31,11 @@ def handle_exception(e):
     # Return JSON for all other exceptions instead of HTML
     return jsonify(error="Internal Server Error: " + str(e)), 500
 
-db_url = os.environ.get('DATABASE_URL', '')
-if db_url.startswith('postgres://'):
+db_url = os.environ.get('DATABASE_URL', '').strip()
+if not db_url:
+    # Prevent the entire Vercel function from crashing on boot if the env var is missing
+    db_url = 'sqlite:///:memory:'
+elif db_url.startswith('postgres://'):
     db_url = db_url.replace('postgres://', 'postgresql+pg8000://', 1)
 elif db_url.startswith('postgresql://'):
     db_url = db_url.replace('postgresql://', 'postgresql+pg8000://', 1)
@@ -378,6 +381,9 @@ def api_register():
     if not username or not password_hash or not salt:
         return jsonify({"error": "Missing registration data"}), 400
         
+    if app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///:memory:':
+        return jsonify({"error": "DATABASE_URL environment variable is missing on Vercel. Please add it in your Vercel Project Settings."}), 500
+        
     existing = User.query.filter_by(username=username).first()
     if existing:
         return jsonify({"error": "An account already exists. Sign in or clear data."}), 400
@@ -393,6 +399,9 @@ def api_get_salt():
     username = request.args.get("username", "").strip()
     if not username:
         return jsonify({"error": "Username required"}), 400
+        
+    if app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///:memory:':
+        return jsonify({"error": "DATABASE_URL environment variable is missing on Vercel. Please add it in your Vercel Project Settings."}), 500
         
     user = User.query.filter_by(username=username).first()
     if not user:
