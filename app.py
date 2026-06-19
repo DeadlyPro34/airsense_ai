@@ -23,6 +23,14 @@ try:
 except ImportError:
     pass
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Pass through HTTP errors
+    if hasattr(e, 'code'):
+        return jsonify(error=str(e)), e.code
+    # Return JSON for all other exceptions instead of HTML
+    return jsonify(error="Internal Server Error: " + str(e)), 500
+
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
