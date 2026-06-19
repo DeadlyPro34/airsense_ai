@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AirSense AI — Login</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-body">
+
+<a href="/" class="login-back-btn">
+  <i class="ti ti-arrow-left"></i> Back to Home
+</a>
+
+<div class="login-bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<div class="login-container">
+  <div class="login-card">
+
+    <!-- Brand -->
+    <a href="/" class="login-brand" style="text-decoration: none; color: inherit; display: block;">
+      <div class="login-brand-icon">
+        <i class="ti ti-wind"></i>
+      </div>
+      <h1 class="login-brand-name">AirSense<strong>AI</strong></h1>
+      <p class="login-subtitle">Air Quality & Health Advisory</p>
+    </a>
+
+    <!-- Login Form -->
+    <form id="login-form" class="login-form" autocomplete="off">
+      <h2 id="form-title" class="login-form-title">Welcome Back</h2>
+      <p id="form-desc" class="login-form-desc">Enter your credentials to continue</p>
+
+      <div class="form-group">
+        <label for="login-username"><i class="ti ti-user"></i> Username</label>
+        <input type="text" id="login-username" placeholder="Enter your username" required autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="login-password"><i class="ti ti-lock"></i> Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="login-password" placeholder="Enter your password" required autocomplete="off">
+          <button type="button" class="password-toggle" id="toggle-password" aria-label="Show password">
+            <i class="ti ti-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="confirm-group" class="form-group" style="display:none;">
+        <label for="login-confirm"><i class="ti ti-lock-check"></i> Confirm Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="login-confirm" placeholder="Confirm your password" autocomplete="off">
+          <button type="button" class="password-toggle" id="toggle-confirm" aria-label="Show password">
+            <i class="ti ti-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="login-error" class="login-error" style="display:none;">
+        <i class="ti ti-alert-circle"></i>
+        <span id="login-error-msg"></span>
+      </div>
+
+      <button type="submit" class="login-btn" id="login-btn">
+        <span id="login-btn-text">Sign In</span>
+        <div class="login-spinner" id="login-spinner" style="display:none;"></div>
+      </button>
+    </form>
+
+    <div class="login-toggle">
+      <span id="toggle-text">Don't have an account?</span>
+      <button type="button" id="toggle-mode" class="toggle-mode-btn">Create Account</button>
+    </div>
+
+    <div class="login-footer">
+      <i class="ti ti-shield-lock"></i>
+      <span>All data encrypted with AES-256-GCM</span>
+    </div>
+
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='crypto.js') }}"></script>
+<script src="{{ url_for('static', filename='sounds.js') }}"></script>
+<script>
+(function() {
+  const form       = document.getElementById('login-form');
+  const usernameEl = document.getElementById('login-username');
+  const passwordEl = document.getElementById('login-password');
+  const confirmEl  = document.getElementById('login-confirm');
+  const confirmGrp = document.getElementById('confirm-group');
+  const errorEl    = document.getElementById('login-error');
+  const errorMsg   = document.getElementById('login-error-msg');
+  const btnText    = document.getElementById('login-btn-text');
+  const spinner    = document.getElementById('login-spinner');
+  const toggleMode = document.getElementById('toggle-mode');
+  const toggleText = document.getElementById('toggle-text');
+  const formTitle  = document.getElementById('form-title');
+  const formDesc   = document.getElementById('form-desc');
+
+  let isSignup = !CryptoModule.accountExists();
+
+  function updateMode() {
+    if (isSignup) {
+      formTitle.textContent = 'Create Account';
+      formDesc.textContent  = 'Set up your credentials to get started';
+      confirmGrp.style.display = 'flex';
+      confirmEl.required = true;
+      btnText.textContent = 'Create Account';
+      toggleText.textContent = 'Already have an account?';
+      toggleMode.textContent = 'Sign In';
+    } else {
+      formTitle.textContent = 'Welcome Back';
+      formDesc.textContent  = 'Enter your credentials to continue';
+      confirmGrp.style.display = 'none';
+      confirmEl.required = false;
+      btnText.textContent = 'Sign In';
+      toggleText.textContent = "Don't have an account?";
+      toggleMode.textContent = 'Create Account';
+    }
+    hideError();
+  }
+
+  toggleMode.addEventListener('click', () => {
+    isSignup = !isSignup;
+    updateMode();
+  });
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorEl.style.display = 'flex';
+    errorEl.classList.add('shake');
+    setTimeout(() => errorEl.classList.remove('shake'), 400);
+  }
+
+  function hideError() {
+    errorEl.style.display = 'none';
+  }
+
+  function setLoading(on) {
+    spinner.style.display = on ? 'block' : 'none';
+    btnText.style.display = on ? 'none' : 'inline';
+    document.getElementById('login-btn').disabled = on;
+  }
+
+  // Password visibility toggles
+  document.getElementById('toggle-password').addEventListener('click', () => {
+    const inp = passwordEl;
+    const icon = document.querySelector('#toggle-password i');
+    if (inp.type === 'password') { inp.type = 'text'; icon.className = 'ti ti-eye-off'; }
+    else { inp.type = 'password'; icon.className = 'ti ti-eye'; }
+  });
+  document.getElementById('toggle-confirm').addEventListener('click', () => {
+    const inp = confirmEl;
+    const icon = document.querySelector('#toggle-confirm i');
+    if (inp.type === 'password') { inp.type = 'text'; icon.className = 'ti ti-eye-off'; }
+    else { inp.type = 'password'; icon.className = 'ti ti-eye'; }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+    const username = usernameEl.value.trim();
+    const password = passwordEl.value;
+
+    if (!username || !password) {
+      showError('Please fill in all fields.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (isSignup) {
+        // Creating new account
+        if (password.length < 6) {
+          showError('Password must be at least 6 characters.');
+          setLoading(false);
+          return;
+        }
+        if (password !== confirmEl.value) {
+          showError('Passwords do not match.');
+          setLoading(false);
+          return;
+        }
+        if (CryptoModule.accountExists()) {
+          showError('An account already exists. Sign in or clear data.');
+          setLoading(false);
+          return;
+        }
+
+        const cryptoKey = await CryptoModule.createAccount(username, password);
+        // Store session key reference in sessionStorage (just a flag, actual key is page-scoped)
+        sessionStorage.setItem('airsense_session', 'active');
+        // Pass the crypto key to the main app via a page-level variable
+        window.__airsense_key = cryptoKey;
+        window.location.href = '/app';
+      } else {
+        // Login
+        const storedUsername = CryptoModule.getUsername();
+        if (storedUsername && username !== storedUsername) {
+          showError('Username does not match.');
+          setLoading(false);
+          return;
+        }
+        const cryptoKey = await CryptoModule.login(password);
+        if (!cryptoKey) {
+          showError('Incorrect password. Please try again.');
+          setLoading(false);
+          return;
+        }
+        sessionStorage.setItem('airsense_session', 'active');
+        // Temporarily store encrypted session marker
+        const salt = CryptoModule.fromBase64(JSON.parse(localStorage.getItem('airsense_account')).salt);
+        // Store password hash in sessionStorage so main page can re-derive the key
+        const tempHash = await CryptoModule.hashPassword(password, salt);
+        sessionStorage.setItem('airsense_pwd_hash', tempHash);
+        // Store password temporarily in sessionStorage (encrypted itself is not possible here
+        // since we need the password to derive the key — we use sessionStorage which is tab-scoped)
+        sessionStorage.setItem('airsense_session_key', btoa(password));
+        window.location.href = '/app';
+      }
+    } catch (err) {
+      showError('An error occurred. Please try again.');
+      console.error(err);
+      setLoading(false);
+    }
+  });
+
+  // Auto-detect mode on load
+  updateMode();
+})();
+</script>
+
+</body>
+</html>

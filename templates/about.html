@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About Us — AirSense AI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="content-body">
+<div class="login-bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+<nav class="landing-nav">
+  <a href="/" class="brand" style="text-decoration:none;">
+    <div class="brand-icon"><i class="ti ti-wind"></i></div>
+    <div class="brand-name">AirSense<strong>AI</strong></div>
+  </a>
+  <a href="/" class="nav-btn">Back to Home</a>
+</nav>
+
+<main class="content-container">
+  <h1>About Us</h1>
+  <div class="content-block">
+    <p>Welcome to <strong>AirSense AI</strong>, your personal and intelligent air quality advisor.</p>
+    <h2>Our Mission</h2>
+    <p>Our mission is to help people make informed decisions about their daily activities by providing hyper-local, real-time air quality data coupled with AI-driven health advisories. We believe that everyone has a right to understand the air they breathe, especially sensitive groups like children, the elderly, and those with respiratory conditions.</p>
+    <h2>How It Works</h2>
+    <p>We fetch live air pollution data from OpenWeatherMap, converting complex pollutant metrics (like PM2.5, NO2, O3) into an easy-to-understand Air Quality Index (AQI).</p>
+    <p>Instead of just giving you a number, we use Groq's high-speed AI models (Llama 3) to generate actionable health advice. Crucially, all AI responses are <strong>strictly grounded in World Health Organization (WHO) guidelines</strong> to ensure safety and accuracy.</p>
+    <h2>Privacy First</h2>
+    <p>We believe in absolute privacy. We do not track your location, and we do not store your API keys on our servers. Everything is encrypted directly in your browser.</p>
+  </div>
+</main>
+<script src="{{ url_for('static', filename='sounds.js') }}"></script>
+</body>
+</html>

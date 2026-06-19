@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cookies Policy — AirSense AI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="content-body">
+<div class="login-bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+<nav class="landing-nav">
+  <a href="/" class="brand" style="text-decoration:none;">
+    <div class="brand-icon"><i class="ti ti-wind"></i></div>
+    <div class="brand-name">AirSense<strong>AI</strong></div>
+  </a>
+  <a href="/" class="nav-btn">Back to Home</a>
+</nav>
+
+<main class="content-container">
+  <h1>Cookies Policy</h1>
+  <div class="content-block">
+    <p>AirSense AI takes a modern approach to web storage. <strong>We do not use traditional tracking cookies.</strong></p>
+    
+    <h2>Local Storage and Session Storage</h2>
+    <p>Instead of tracking cookies, our application relies strictly on standard HTML5 Web Storage (`localStorage` and `sessionStorage`) to function securely.</p>
+    
+    <ul>
+      <li><strong>localStorage:</strong> We use this to save your encrypted API keys, encrypted chat history, and account salt/hash. This data never leaves your device unless explicitly requested by you during an active session to make an API call.</li>
+      <li><strong>sessionStorage:</strong> We use this to keep your session active while the browser tab is open. We temporarily store the session state and your encryption key here. When you close the tab, the key is destroyed.</li>
+    </ul>
+
+    <h2>Analytics and Third Parties</h2>
+    <p>We do not embed third-party trackers, analytics scripts, or advertising cookies on AirSense AI. Your browsing behavior is not monitored or sold to anyone.</p>
+  </div>
+</main>
+<script src="{{ url_for('static', filename='sounds.js') }}"></script>
+</body>
+</html>

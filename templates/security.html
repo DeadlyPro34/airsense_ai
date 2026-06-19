@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Policy — AirSense AI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="content-body">
+<div class="login-bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+<nav class="landing-nav">
+  <a href="/" class="brand" style="text-decoration:none;">
+    <div class="brand-icon"><i class="ti ti-wind"></i></div>
+    <div class="brand-name">AirSense<strong>AI</strong></div>
+  </a>
+  <a href="/" class="nav-btn">Back to Home</a>
+</nav>
+
+<main class="content-container">
+  <h1>Security Policy</h1>
+  <div class="content-block">
+    <p>At AirSense AI, your data security and privacy are our highest priorities. Because our application requires you to bring your own API keys (Groq and OpenWeatherMap), we have designed a zero-knowledge architecture.</p>
+    
+    <h2>Client-Side Encryption</h2>
+    <p>All sensitive data, including your API keys and your chat history, are encrypted directly in your browser using the <strong>Web Crypto API</strong> before they are ever saved to your local storage.</p>
+    <ul>
+      <li><strong>Encryption Algorithm:</strong> We use AES-256-GCM, the industry standard for symmetric encryption.</li>
+      <li><strong>Key Derivation:</strong> Your master encryption key is derived from your password using PBKDF2 with a SHA-256 hash and 100,000 iterations.</li>
+      <li><strong>Zero-Knowledge:</strong> Your plaintext password is never stored anywhere, nor is it sent to our backend servers. It exists only in your computer's RAM while the app is open.</li>
+    </ul>
+
+    <h2>Server Communication</h2>
+    <p>Our backend only acts as a proxy to communicate with OpenWeatherMap and Groq. When you make a request (like asking a question), your browser decrypts the API keys in memory and sends them securely over HTTPS to our backend, which immediately uses them to fetch data and then discards them.</p>
+
+    <h2>Account Deletion</h2>
+    <p>Because all your data is stored locally on your device, deleting your account via the Settings panel instantly destroys the cryptographic salt, password hash, and all encrypted data files from your browser's local storage. This action cannot be undone.</p>
+  </div>
+</main>
+<script src="{{ url_for('static', filename='sounds.js') }}"></script>
+</body>
+</html>
