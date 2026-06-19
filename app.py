@@ -28,7 +28,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"DB init warning: {e}")
 
 # ── WHO / health knowledge base (simple RAG — retrieved by AQI bucket) ──────
 WHO_GUIDELINES = {
