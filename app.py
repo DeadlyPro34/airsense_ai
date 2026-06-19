@@ -11,8 +11,24 @@ import os
 import requests
 from flask import Flask, render_template, request, jsonify
 from groq import Groq
+from models import db, User, ChatHistory
 
 app = Flask(__name__)
+
+# Load local .env if present (Vercel uses env vars natively)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()
 
 # ── WHO / health knowledge base (simple RAG — retrieved by AQI bucket) ──────
 WHO_GUIDELINES = {
@@ -306,6 +322,22 @@ def api_chat():
 
         aqi_data = fetch_air_quality(loc["lat"], loc["lon"], weather_key)
         advisory, label = generate_advisory(loc["name"], aqi_data, groq_key, question, history)
+        
+        # Save to database if username is provided
+        username = (data or {}).get("username", "").strip()
+        if username:
+            user = User.query.filter_by(username=username).first()
+            if user:
+                new_chat = ChatHistory(
+                    user_id=user.id,
+                    city=loc["name"],
+                    aqi=aqi_data["aqi"],
+                    aqi_label=label,
+                    question=question,
+                    response=advisory
+                )
+                db.session.add(new_chat)
+                db.session.commit()
 
         return jsonify({
             "city": loc["name"],
@@ -318,6 +350,94 @@ def api_chat():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route("/api/auth/register", methods=["POST"])
+def api_register():
+    data = request.json
+    username = (data or {}).get("username", "").strip()
+    password_hash = (data or {}).get("password_hash", "").strip()
+    salt = (data or {}).get("salt", "").strip()
+    
+    if not username or not password_hash or not salt:
+        return jsonify({"error": "Missing registration data"}), 400
+        
+    existing = User.query.filter_by(username=username).first()
+    if existing:
+        return jsonify({"error": "An account already exists. Sign in or clear data."}), 400
+        
+    user = User(username=username, password_hash=password_hash, salt=salt)
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({"message": "Account created successfully"})
+
+@app.route("/api/auth/salt", methods=["GET"])
+def api_get_salt():
+    username = request.args.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "Username required"}), 400
+        
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    return jsonify({"salt": user.salt})
+
+@app.route("/api/auth/login", methods=["POST"])
+def api_login():
+    data = request.json
+    username = (data or {}).get("username", "").strip()
+    password_hash = (data or {}).get("hash", "").strip()
+    
+    if not username or not password_hash:
+        return jsonify({"error": "Username and hash required"}), 400
+        
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    if user.password_hash != password_hash:
+        return jsonify({"error": "Incorrect password"}), 401
+        
+    return jsonify({
+        "username": user.username,
+        "message": "Login successful"
+    })
+
+@app.route("/api/history", methods=["GET"])
+def api_get_history():
+    username = request.args.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "Username required"}), 400
+        
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    # Get last 50 messages ordered by created_at
+    chats = ChatHistory.query.filter_by(user_id=user.id).order_by(ChatHistory.created_at.asc()).all()
+    history = []
+    for chat in chats:
+        history.append({"role": "user", "text": chat.question})
+        history.append({"role": "bot", "text": chat.response})
+        
+    return jsonify(history)
+
+@app.route("/api/history", methods=["DELETE"])
+def api_delete_history():
+    data = request.json
+    username = (data or {}).get("username", "").strip()
+    if not username:
+        return jsonify({"error": "Username required"}), 400
+        
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    ChatHistory.query.filter_by(user_id=user.id).delete()
+    db.session.commit()
+    
+    return jsonify({"message": "History cleared"})
 
 @app.route("/api/validate-keys", methods=["POST"])
 def api_validate_keys():
