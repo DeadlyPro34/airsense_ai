@@ -22,16 +22,11 @@ AirSense AI is an intelligent web application that provides real-time Air Qualit
 
 ## Screenshots / Preview
 
-*(Note: Replace with actual image paths once available)*
-
 ![Landing Page](assets/landing-page.png)
 *Figure 1: Main Dashboard and Live AQI Search*
 
 ![Health Advisory](assets/health-advisory.png)
 *Figure 2: AI-Generated Health Advisory via Groq*
-
-![History View](assets/history-view.png)
-*Figure 3: Historical Search Data*
 
 ---
 
