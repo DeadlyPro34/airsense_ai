@@ -33,7 +33,7 @@ AirSense AI is an intelligent web application that provides real-time Air Qualit
 ## Demo
 
 **Live Demo:** [https://airsense-ai-khaki.vercel.app/](https://airsense-ai-khaki.vercel.app/)  
-**Video Demo:** [Insert Video Link Here]
+**Video Demo:** [Watch the Video Demo](https://drive.google.com/file/d/16JzVedxcjHvxNZRSQNPtpGRlEGj8AODX/view?usp=sharing)
 
 ---
 
